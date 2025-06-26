@@ -1,12 +1,17 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useContext } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
-import { Link } from "expo-router";
-import { AuthContext } from "../_layout";
+import { Image, Text, TouchableOpacity, View } from "react-native";
+import { styles } from "../../assets/styles/home.styles";
+import { SignOutButton } from "../../components/SignOutButton";
 import { authService } from "../../services/auth";
+import { AuthContext } from "../_layout";
 
 export default function Page() {
+  const router = useRouter();
+
   const { user, session } = useContext(AuthContext);
-  
+
   const handleSignOut = async () => {
     try {
       await authService.signOut();
@@ -15,30 +20,39 @@ export default function Page() {
       console.error("Error signing out:", error);
     }
   };
-  
 
   return (
-    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-      <Text style={{ fontSize: 18, marginBottom: 20 }}>
-        Bonjour {user?.email || "Utilisateur"}!
-      </Text>
-
-      <TouchableOpacity
-        onPress={handleSignOut}
-        style={{
-          backgroundColor: "red",
-          padding: 10,
-          borderRadius: 5,
-        }}
-      >
-        <Text style={{ color: "white" }}>Se déconnecter</Text>
-      </TouchableOpacity>
-      <Link href="/(auth)/sign-in" style={{ marginTop: 20 }}>
-        <Text style={{ color: "blue" }}>Sign In</Text>
-      </Link>
-      <Link href="/(auth)/sign-up" style={{ marginTop: 20 }}>
-        <Text style={{ color: "blue" }}>Sign Up</Text>
-      </Link>
+    <View style={styles.container}>
+      <View style={styles.content}>
+        {/* HEADER */}
+        <View style={styles.header}>
+          {/* LEFT */}
+          <View style={styles.headerLeft}>
+            <Image
+              source={require("../../assets/images/logo.png")}
+              style={styles.headerLogo}
+              resizeMode="contain"
+            />
+            <View style={styles.welcomeContainer}>
+              <Text style={styles.welcomeText}>Welcome,</Text>
+              <Text style={styles.usernameText}>
+                {user?.email?.split("@")[0]}
+              </Text>
+            </View>
+          </View>
+          {/* RIGHT */}
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => router.push("/create")}
+            >
+              <Ionicons name="add" size={20} color="#fff" />
+              <Text style={styles.addButtonText}>Add</Text>
+            </TouchableOpacity>
+            <SignOutButton />
+          </View>
+        </View>
+      </View>
     </View>
   );
 }

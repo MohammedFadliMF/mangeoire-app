@@ -1,22 +1,35 @@
-import { useClerk } from "@clerk/clerk-expo";
-import { Text, TouchableOpacity } from "react-native";
+import { styles } from "@/assets/styles/auth.styles.js";
+import { authService } from "@/services/auth";
+import { Ionicons } from "@expo/vector-icons";
+import { Alert, TouchableOpacity } from "react-native";
+import { COLORS } from "../constants/colors";
 
 export const SignOutButton = () => {
-  // Use `useClerk()` to access the `signOut()` function
-  const { signOut } = useClerk();
-  const handleSignOut = async () => {
+  const SignOut = async () => {
     try {
-      await signOut();
-      // Redirect to your desired page
-    } catch (err) {
-      // See https://clerk.com/docs/custom-flows/error-handling
-      // for more info on error handling
-      console.error(JSON.stringify(err, null, 2));
+      await authService.signOut();
+      // La redirection se fera automatiquement via le contexte
+    } catch (error) {
+      console.error("Error signing out:", error);
     }
   };
+
+  const handleSignOut = async () => {
+    Alert.alert("Lougout", "Are you sure want to logout ?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Logout",
+        onPress: SignOut,
+        style: "destructive",
+      },
+    ]);
+  };
   return (
-    <TouchableOpacity onPress={handleSignOut}>
-      <Text>Sign out</Text>
+    <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
+      <Ionicons name="log-out-outline" size={22} color={COLORS.text} />
     </TouchableOpacity>
   );
 };

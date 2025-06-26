@@ -6,9 +6,9 @@ import "react-native-url-polyfill/auto";
 export const supabase = createClient(
   // Config.SUPABASE_URL as string,
   // Config.SUPABASE_ANON_KEY as string,
-  supabaseUrl, 
-  supabaseAnonKey, 
-  
+  supabaseUrl,
+  supabaseAnonKey,
+
   {
     auth: {
       storage: AsyncStorage,
