@@ -1,0 +1,28 @@
+export const CColors = {
+  light: {
+    text: "#11181C",
+    background: "#fff",
+    tint: "#2196F3",
+    icon: "#687076",
+    tabIconDefault: "#687076",
+    tabIconSelected: "#2196F3",
+    card: "#f5f5f5",
+    border: "#e0e0e0",
+    success: "#4CAF50",
+    warning: "#FF9800",
+    error: "#F44336",
+  },
+  dark: {
+    text: "#ECEDEE",
+    background: "#151718",
+    tint: "#2196F3",
+    icon: "#9BA1A6",
+    tabIconDefault: "#9BA1A6",
+    tabIconSelected: "#2196F3",
+    card: "#1D1D1D",
+    border: "#333",
+    success: "#4CAF50",
+    warning: "#FF9800",
+    error: "#F44336",
+  },
+};

@@ -82,7 +82,7 @@ export default function Page() {
     });
     if (data?.user) {
       console.log("Connexion réussie!", data.user);
-      router.replace("/"); // Redirection après connexion
+      router.replace("/(tabs)"); // Redirection après connexion
     }
     if (error) {
       Alert.alert(error.message);

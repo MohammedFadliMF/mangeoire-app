@@ -1,9 +1,8 @@
 import SafeScreen from "@/components/SafeScreen";
 import { supabase } from "@/utils/supabase";
-import { Slot } from "expo-router";
+import { Redirect, Slot } from "expo-router";
 import React, { createContext, useEffect, useState } from "react";
-import { Session } from "@supabase/supabase-js";
-
+import {Text,} from "react-native";
 // Créer un contexte Auth
 export const AuthContext = createContext(null);
 
@@ -53,18 +52,25 @@ export default function RootLayout() {
   //   };
   // }, []);
 
-
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("getSession:", session);
       setSession(session);
       setUser(session?.user ?? null); // <-- Ajoute cette ligne
       setLoading(false);
     });
-    supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log("onAuthStateChange:", session);
       setSession(session);
       setUser(session?.user ?? null); // <-- Ajoute cette ligne
       setLoading(false);
     });
+    // Nettoyer la souscription à la destruction du composant
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const authValues = {
@@ -75,6 +81,19 @@ export default function RootLayout() {
     loading,
   };
 
+  // if (loading) {
+  //   return (
+  //     <SafeScreen>
+  //       <React.Fragment>
+  //         <Text style={{ textAlign: "center", marginTop: 40 }}>
+  //           Chargement...
+  //         </Text>
+  //       </React.Fragment>
+  //     </SafeScreen>
+  //   );
+  // }
+  // if (!user) return <Redirect href="/(auth)/sign-in" />;
+  // Redirige vers les tabs après connexion
   return (
     <AuthContext.Provider value={authValues}>
       <SafeScreen>
