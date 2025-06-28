@@ -1,76 +1,116 @@
-import React, { useState, useEffect } from 'react'
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import { useRealtimeSensorData } from "@/hooks/useRealtimeSensorData";
+import { Ionicons } from "@expo/vector-icons";
+import React, { useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  RefreshControl,
   Alert,
-} from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
-import Card from '@/components/ui/Card'
-import Button from '@/components/ui/Button'
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { CColors } from "../../constants/CColors";
-import { esp32Api } from '@/utils/supabase'
-import type { SensorData } from '@/types/index'
 
 export default function DashboardScreen() {
-  const [sensorData, setSensorData] = useState<SensorData | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [refreshing, setRefreshing] = useState(false)
+  const { sensorData, loading, error, isConnected, sendCommand, refreshData } =
+    useRealtimeSensorData();
 
-  const loadSensorData = async () => {
-    try {
-      const data = await esp32Api.getSensorData()
-      setSensorData(data)
-    } catch (error) {
-      Alert.alert('Erreur', 'Impossible de charger les données')
-    }
-  }
+  const [commandLoading, setCommandLoading] = useState(false);
 
   const handleTriggerServo = async () => {
-    setLoading(true)
+    setCommandLoading(true);
     try {
-      const result = await esp32Api.triggerServo()
-      Alert.alert('Succès', result.message)
-      // Recharger les données après distribution
-      await loadSensorData()
+      const success = await sendCommand("DISTRIBUTE");
+      if (success) {
+        Alert.alert("✅ Succès", "Commande de distribution envoyée");
+      } else {
+        Alert.alert("❌ Erreur", "Impossible d'envoyer la commande");
+      }
     } catch (error) {
-      Alert.alert('Erreur', 'Impossible d\'activer le servo')
+      Alert.alert("❌ Erreur", "Problème de communication");
     } finally {
-      setLoading(false)
+      setCommandLoading(false);
     }
-  }
+  };
 
-  const onRefresh = async () => {
-    setRefreshing(true)
-    await loadSensorData()
-    setRefreshing(false)
-  }
-
-  useEffect(() => {
-    loadSensorData()
-    // Actualiser toutes les 30 secondes
-    const interval = setInterval(loadSensorData, 30000)
-    return () => clearInterval(interval)
-  }, [])
+  const handleCalibrate = async () => {
+    const success = await sendCommand("CALIBRATE");
+    if (success) {
+      Alert.alert("✅ Succès", "Calibration demandée");
+    }
+  };
 
   const getWeightStatus = (weight: number) => {
-    if (weight < 50) return { status: 'Vide', color: CColors.light.error, icon: 'alert-circle' }
-    if (weight < 200) return { status: 'Faible', color: CColors.light.warning, icon: 'warning' }
-    return { status: 'Pleine', color: CColors.light.success, icon: 'checkmark-circle' }
+    if (weight < 50)
+      return {
+        status: "Vide",
+        color: CColors.light.error,
+        icon: "alert-circle",
+      };
+    if (weight < 200)
+      return {
+        status: "Faible",
+        color: CColors.light.warning,
+        icon: "warning",
+      };
+    return {
+      status: "Pleine",
+      color: CColors.light.success,
+      icon: "checkmark-circle",
+    };
+  };
+
+  const formatLastUpdate = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return `il y a ${diffInSeconds}s`;
+    if (diffInSeconds < 3600)
+      return `il y a ${Math.floor(diffInSeconds / 60)}min`;
+    return date.toLocaleTimeString();
+  };
+
+  if (error) {
+    return (
+      <View style={sstyles.errorContainer}>
+        <Ionicons name="warning" size={48} color={CColors.light.error} />
+        <Text style={sstyles.errorText}>Erreur de connexion</Text>
+        <Text style={sstyles.errorSubtext}>{error}</Text>
+        <Button title="Réessayer" onPress={refreshData} />
+      </View>
+    );
   }
 
   return (
     <ScrollView
       style={sstyles.container}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        <RefreshControl refreshing={loading} onRefresh={refreshData} />
       }
     >
       <View style={sstyles.header}>
         <Text style={sstyles.title}>🐓 Mangeoire Automatique</Text>
         <Text style={sstyles.subtitle}>Tableau de bord</Text>
+
+        {/* Indicateur de connexion */}
+        <View style={sstyles.connectionStatus}>
+          <View
+            style={[
+              sstyles.connectionDot,
+              {
+                backgroundColor: isConnected
+                  ? CColors.light.success
+                  : CColors.light.error,
+              },
+            ]}
+          />
+          <Text style={sstyles.connectionText}>
+            {isConnected ? "Connecté" : "Déconnecté"}
+          </Text>
+        </View>
       </View>
 
       {sensorData && (
@@ -79,7 +119,7 @@ export default function DashboardScreen() {
             <View style={sstyles.statusHeader}>
               <Text style={sstyles.cardTitle}>État actuel</Text>
               <Text style={sstyles.lastUpdate}>
-                Dernière mise à jour: {new Date(sensorData.lastUpdate).toLocaleTimeString()}
+                Dernière mise à jour: {formatLastUpdate(sensorData.timestamp)}
               </Text>
             </View>
 
@@ -93,7 +133,12 @@ export default function DashboardScreen() {
                   />
                 </View>
                 <Text style={sstyles.statusLabel}>Réserve</Text>
-                <Text style={[sstyles.statusValue, { color: getWeightStatus(sensorData.weight).color }]}>
+                <Text
+                  style={[
+                    sstyles.statusValue,
+                    { color: getWeightStatus(sensorData.weight).color },
+                  ]}
+                >
                   {getWeightStatus(sensorData.weight).status}
                 </Text>
                 <Text style={sstyles.statusDetail}>
@@ -104,20 +149,62 @@ export default function DashboardScreen() {
               <View style={sstyles.statusItem}>
                 <View style={sstyles.statusIcon}>
                   <Ionicons
-                    name={sensorData.isContainerPresent ? 'cube' : 'cube-outline'}
+                    name={
+                      sensorData.is_container_present ? "cube" : "cube-outline"
+                    }
                     size={32}
-                    color={sensorData.isContainerPresent ? CColors.light.success : CColors.light.error}
+                    color={
+                      sensorData.is_container_present
+                        ? CColors.light.success
+                        : CColors.light.error
+                    }
                   />
                 </View>
                 <Text style={sstyles.statusLabel}>Récipient</Text>
-                <Text style={[
-                  sstyles.statusValue,
-                  { color: sensorData.isContainerPresent ? CColors.light.success : CColors.light.error }
-                ]}>
-                  {sensorData.isContainerPresent ? 'Présent' : 'Absent'}
+                <Text
+                  style={[
+                    sstyles.statusValue,
+                    {
+                      color: sensorData.is_container_present
+                        ? CColors.light.success
+                        : CColors.light.error,
+                    },
+                  ]}
+                >
+                  {sensorData.is_container_present ? "Présent" : "Absent"}
+                </Text>
+                <Text style={sstyles.statusDetail}>Capteur IR</Text>
+              </View>
+
+              <View style={sstyles.statusItem}>
+                <View style={sstyles.statusIcon}>
+                  <Ionicons
+                    name={
+                      sensorData.servo_active ? "refresh" : "checkmark-circle"
+                    }
+                    size={32}
+                    color={
+                      sensorData.servo_active
+                        ? CColors.light.warning
+                        : CColors.light.success
+                    }
+                  />
+                </View>
+                <Text style={sstyles.statusLabel}>Servo</Text>
+                <Text
+                  style={[
+                    sstyles.statusValue,
+                    {
+                      color: sensorData.servo_active
+                        ? CColors.light.warning
+                        : CColors.light.success,
+                    },
+                  ]}
+                >
+                  {sensorData.servo_active ? "Actif" : "Prêt"}
                 </Text>
                 <Text style={sstyles.statusDetail}>
-                  Capteur IR
+                  {sensorData.distribution_count} distributions
                 </Text>
               </View>
             </View>
@@ -129,12 +216,13 @@ export default function DashboardScreen() {
               <Button
                 title="Distribuer maintenant"
                 onPress={handleTriggerServo}
-                loading={loading}
+                loading={commandLoading}
+                disabled={sensorData.servo_active}
                 style={sstyles.actionButton}
               />
               <Button
-                title="Actualiser"
-                onPress={loadSensorData}
+                title="Calibrer balance"
+                onPress={handleCalibrate}
                 variant="secondary"
                 style={sstyles.actionButton}
               />
@@ -145,29 +233,60 @@ export default function DashboardScreen() {
             <Text style={sstyles.cardTitle}>Informations système</Text>
             <View style={sstyles.infoRow}>
               <Text style={sstyles.infoLabel}>Poids actuel:</Text>
-              <Text style={sstyles.infoValue}>{sensorData.weight.toFixed(1)} g</Text>
+              <Text style={sstyles.infoValue}>
+                {sensorData.weight.toFixed(1)} g
+              </Text>
             </View>
             <View style={sstyles.infoRow}>
               <Text style={sstyles.infoLabel}>Récipient:</Text>
               <Text style={sstyles.infoValue}>
-                {sensorData.isContainerPresent ? '✅ Détecté' : '❌ Non détecté'}
+                {sensorData.is_container_present
+                  ? "✅ Détecté"
+                  : "❌ Non détecté"}
+              </Text>
+            </View>
+            <View style={sstyles.infoRow}>
+              <Text style={sstyles.infoLabel}>Distributions totales:</Text>
+              <Text style={sstyles.infoValue}>
+                {sensorData.distribution_count}
               </Text>
             </View>
             <View style={sstyles.infoRow}>
               <Text style={sstyles.infoLabel}>État du servo:</Text>
-              <Text style={sstyles.infoValue}>🔄 Prêt</Text>
+              <Text style={sstyles.infoValue}>
+                {sensorData.servo_active ? "🔄 En cours" : "✅ Prêt"}
+              </Text>
             </View>
           </Card>
         </>
       )}
     </ScrollView>
-  )
+  );
 }
 
 const sstyles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: CColors.light.card,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  errorText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: CColors.light.error,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorSubtext: {
+    fontSize: 14,
+    color: CColors.light.icon,
+    textAlign: "center",
+    marginBottom: 24,
   },
   header: {
     padding: 24,
@@ -181,6 +300,21 @@ const sstyles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
+    color: CColors.light.icon,
+    marginBottom: 12,
+  },
+  connectionStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  connectionDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  connectionText: {
+    fontSize: 14,
     color: CColors.light.icon,
   },
   statusCard: {

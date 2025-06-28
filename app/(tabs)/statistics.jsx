@@ -12,7 +12,6 @@ import {
 } from "react-native";
 import { styles } from "../../assets/styles/home.styles";
 import { SignOutButton } from "../../components/SignOutButton";
-import { authService } from "../../services/auth";
 import { AuthContext } from "../_layout";
 
 import Card from "@/components/ui/Card";
@@ -28,15 +27,6 @@ export default function StatisticsScreen() {
   const router = useRouter();
 
   const { user, session } = useContext(AuthContext);
-
-  const handleSignOut = async () => {
-    try {
-      await authService.signOut();
-      // La redirection se fera automatiquement via le contexte
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
-  };
 
   useEffect(() => {
     loadHistory();
@@ -71,12 +61,18 @@ export default function StatisticsScreen() {
   };
 
   const weightData = {
-    labels: history
-      .map((entry) => new Date(entry.date).getDate().toString())
-      .reverse(),
+    labels:
+      history.length > 0
+        ? history
+            .map((entry) => new Date(entry.date).getDate().toString())
+            .reverse()
+        : [""],
     datasets: [
       {
-        data: history.map((entry) => entry.weight).reverse(),
+        data:
+          history.length > 0
+            ? history.map((entry) => entry.weight).reverse()
+            : [0],
         color: (opacity = 1) => `rgba(33, 150, 243, ${opacity})`,
         strokeWidth: 2,
       },
@@ -84,28 +80,39 @@ export default function StatisticsScreen() {
   };
 
   const distributionData = {
-    labels: history
-      .map((entry) => new Date(entry.date).getDate().toString())
-      .reverse(),
+    labels:
+      history.length > 0
+        ? history
+            .map((entry) => new Date(entry.date).getDate().toString())
+            .reverse()
+        : [""],
     datasets: [
       {
-        data: history.map((entry) => entry.distributions).reverse(),
+        data:
+          history.length > 0
+            ? history.map((entry) => entry.distribution_count).reverse()
+            : [0],
         color: (opacity = 1) => `rgba(76, 175, 80, ${opacity})`,
         strokeWidth: 2,
       },
     ],
   };
 
-  const totalDistributions = history.reduce(
-    (sum, entry) => sum + entry.distributions,
-    0
-  );
-  const averageWeight =
-    history.reduce((sum, entry) => sum + entry.weight, 0) / history.length || 0;
-  const lastWeekConsumption = history
-    .slice(0, 7)
-    .reduce((sum, entry) => sum + entry.distributions, 0);
+  const totalDistributions =
+    history.length > 0
+      ? history.reduce((sum, entry) => sum + entry.distribution_count, 0)
+      : 0;
 
+  const averageWeight =
+    history.length > 0
+      ? history.reduce((sum, entry) => sum + entry.weight, 0) / history.length
+      : 0;
+  const lastWeekConsumption =
+    history.length > 0
+      ? history
+          .slice(0, 7)
+          .reduce((sum, entry) => sum + entry.distribution_count, 0)
+      : 0;
   if (loading) {
     return (
       <View style={styles.loadingContainer}>

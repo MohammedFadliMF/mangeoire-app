@@ -51,23 +51,39 @@ export interface User {
   created_at: string;
 }
 
-export interface SensorData {
-  weight: number;
-  isContainerPresent: boolean;
-  lastUpdate: string;
-}
-
-export interface HistoryEntry {
-  date: string;
-  weight: number;
-  distributions: number;
-}
-
-export interface Schedule {
+export interface Device {
   id: string;
+  user_id: string;
+  name: string;
+  device_code: string;
+  location: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SensorDataRow {
+  id: number;
+  device_id: string;
+  weight: number;
+  is_container_present: boolean;
+  servo_active: boolean;
+  distribution_count: number;
+  timestamp: string;
+}
+
+export interface DeviceCommand {
+  device_id: string;
+  command: string;
+}
+
+export interface DeviceSchedule {
+  id: string;
+  device_id: string;
+  name: string;
   time: string;
   enabled: boolean;
-  name: string;
+  created_at: string;
 }
 
 export interface AuthState {
