@@ -1,8 +1,9 @@
-import { esp32Api, type SensorDataRow } from "@/utils/supabase";
+import { useState, useEffect } from "react";
+import { esp32Api } from "@/utils/supabase";
 import { RealtimeChannel } from "@supabase/supabase-js";
-import { useEffect, useState } from "react";
+import { SensorDataRow } from "@/types/index";
 
-export function useRealtimeSensorData(deviceId: string = "mangeoire_01") {
+export function useRealtimeSensorData(deviceId: string | null) {
   const [sensorData, setSensorData] = useState<SensorDataRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -12,6 +13,11 @@ export function useRealtimeSensorData(deviceId: string = "mangeoire_01") {
     let subscription: RealtimeChannel | null = null;
 
     const initializeData = async () => {
+      if (!deviceId) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
 
@@ -55,6 +61,8 @@ export function useRealtimeSensorData(deviceId: string = "mangeoire_01") {
   }, [deviceId]);
 
   const sendCommand = async (command: string): Promise<boolean> => {
+    if (!deviceId) return false;
+
     try {
       const success = await esp32Api.sendCommand(deviceId, command);
       if (!success) {
@@ -68,6 +76,8 @@ export function useRealtimeSensorData(deviceId: string = "mangeoire_01") {
   };
 
   const refreshData = async () => {
+    if (!deviceId) return;
+
     try {
       const data = await esp32Api.getLatestSensorData(deviceId);
       if (data) {

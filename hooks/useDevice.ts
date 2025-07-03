@@ -1,127 +1,103 @@
-import { supabase } from "@/utils/supabase";
-import { useEffect, useState } from "react";
-import { deviceService } from "../services/device";
-import { Device, DeviceSettings, SensorData } from "../types";
+import { useState, useEffect } from "react";
+import { devicesApi  } from "@/utils/supabase";
+import { Device } from "@/types/index";
 
-export const useDevice = (deviceId?: string) => {
+export function useDevice() {
   const [devices, setDevices] = useState<Device[]>([]);
-  const [currentDevice, setCurrentDevice] = useState<Device | null>(null);
-  const [sensorData, setSensorData] = useState<SensorData | null>(null);
-  const [settings, setSettings] = useState<DeviceSettings | null>(null);
+  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [loading, setLoading] = useState(true);
-
-  // Charger les appareils
-  const loadDevices = async () => {
-    try {
-      const userDevices = await deviceService.getUserDevices();
-      setDevices(userDevices);
-
-      if (userDevices.length > 0 && !currentDevice) {
-        setCurrentDevice(userDevices[0]);
-      }
-    } catch (error) {
-      console.error("Error loading devices:", error);
-    }
-  };
-
-  // Charger les données du capteur
-  const loadSensorData = async (deviceId: string) => {
-    try {
-      const data = await deviceService.getLatestSensorData(deviceId);
-      setSensorData(data);
-    } catch (error) {
-      console.error("Error loading sensor data:", error);
-    }
-  };
-
-  // Charger les paramètres
-  const loadSettings = async (deviceId: string) => {
-    try {
-      const deviceSettings = await deviceService.getDeviceSettings(deviceId);
-      setSettings(deviceSettings);
-    } catch (error) {
-      console.error("Error loading settings:", error);
-    }
-  };
-
-  // Contrôler le servo
-  const controlServo = async (position: number) => {
-    if (!currentDevice) return;
-
-    try {
-      await deviceService.controlServo(currentDevice.id, position);
-    } catch (error) {
-      console.error("Error controlling servo:", error);
-      throw error;
-    }
-  };
-
-  // Ajouter un appareil
-  const addDevice = async (name: string, deviceCode: string) => {
-    try {
-      const newDevice = await deviceService.addDevice(name, deviceCode);
-      setDevices((prev) => [newDevice, ...prev]);
-      return newDevice;
-    } catch (error) {
-      console.error("Error adding device:", error);
-      throw error;
-    }
-  };
-
-  // Mettre à jour les paramètres
-  const updateSettings = async (newSettings: Partial<DeviceSettings>) => {
-    if (!currentDevice) return;
-
-    try {
-      const updated = await deviceService.updateDeviceSettings(
-        currentDevice.id,
-        newSettings
-      );
-      setSettings(updated);
-      return updated;
-    } catch (error) {
-      console.error("Error updating settings:", error);
-      throw error;
-    }
-  };
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadDevices().finally(() => setLoading(false));
+    loadDevices();
   }, []);
 
-  useEffect(() => {
-    if (currentDevice) {
-      loadSensorData(currentDevice.id);
-      loadSettings(currentDevice.id);
+  const loadDevices = async () => {
+    try {
+      setLoading(true);
+      const userDevices = await devicesApi.getUserDevices();
+      setDevices(userDevices);
 
-      // S'abonner aux mises à jour en temps réel
-      const subscription = deviceService.subscribeToSensorData(
-        currentDevice.id,
-        (newData) => {
-          setSensorData(newData);
-        }
-      );
+      // Sélectionner le premier device par défaut
+      if (userDevices.length > 0 && !selectedDevice) {
+        setSelectedDevice(userDevices[0]);
+      }
 
-      return () => {
-        supabase.removeChannel(subscription);
-      };
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur de chargement");
+    } finally {
+      setLoading(false);
     }
-  }, [currentDevice]);
+  };
+
+  const createDevice = async (
+    name: string,
+    location?: string
+  ): Promise<boolean> => {
+    try {
+      const newDevice = await devicesApi.createDevice(name, location);
+      if (newDevice) {
+        setDevices((prev) => [...prev, newDevice]);
+        setSelectedDevice(newDevice);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur de création");
+      return false;
+    }
+  };
+
+  const updateDevice = async (
+    deviceId: string,
+    updates: Partial<Pick<Device, "name" | "location">>
+  ): Promise<boolean> => {
+    try {
+      const success = await devicesApi.updateDevice(deviceId, updates);
+      if (success) {
+        setDevices((prev) =>
+          prev.map((device) =>
+            device.id === deviceId ? { ...device, ...updates } : device
+          )
+        );
+        if (selectedDevice?.id === deviceId) {
+          setSelectedDevice((prev) => (prev ? { ...prev, ...updates } : null));
+        }
+      }
+      return success;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur de mise à jour");
+      return false;
+    }
+  };
+
+  const deleteDevice = async (deviceId: string): Promise<boolean> => {
+    try {
+      const success = await devicesApi.deleteDevice(deviceId);
+      if (success) {
+        setDevices((prev) => prev.filter((device) => device.id !== deviceId));
+        if (selectedDevice?.id === deviceId) {
+          const remainingDevices = devices.filter((d) => d.id !== deviceId);
+          setSelectedDevice(remainingDevices[0] || null);
+        }
+      }
+      return success;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur de suppression");
+      return false;
+    }
+  };
 
   return {
     devices,
-    currentDevice,
-    sensorData,
-    settings,
+    selectedDevice,
+    setSelectedDevice,
     loading,
-    setCurrentDevice,
-    controlServo,
-    addDevice,
-    updateSettings,
-    refreshData: () => {
-      if (currentDevice) {
-        loadSensorData(currentDevice.id);
-      }
-    },
+    error,
+    loadDevices,
+    createDevice,
+    updateDevice,
+    deleteDevice,
   };
-};
+}

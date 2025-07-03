@@ -79,11 +79,11 @@ export interface DeviceCommand {
 
 export interface DeviceSchedule {
   id: string;
-  device_id: string;
+  device_id?: string;
   name: string;
   time: string;
   enabled: boolean;
-  created_at: string;
+  created_at?: string;
 }
 
 export interface AuthState {

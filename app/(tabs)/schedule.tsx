@@ -10,15 +10,20 @@ import {
   View,
 } from "react-native";
 
-import Button from "@/components/ui/Button";
+import { STYLES } from "@/assets/styles/create.styles";
 import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
-import { Schedule } from "@/types/index";
+import { COLORS } from "@/constants/colors";
+import { useDevice } from "@/hooks/useDevice";
+import { DeviceSchedule } from "@/types/index";
 import { Ionicons } from "@expo/vector-icons";
+import { styles } from "../../assets/styles/home.styles";
 import { CColors } from "../../constants/CColors";
 
 export default function StatisticsScreen() {
-  const [schedules, setSchedules] = useState<Schedule[]>([
+  const { selectedDevice } = useDevice();
+
+  const [schedules, setSchedules] = useState<DeviceSchedule[]>([
     { id: "1", time: "08:00", enabled: true, name: "Distribution matinale" },
     { id: "2", time: "12:00", enabled: false, name: "Distribution midi" },
     { id: "3", time: "18:00", enabled: true, name: "Distribution du soir" },
@@ -62,7 +67,7 @@ export default function StatisticsScreen() {
       return;
     }
 
-    const schedule: Schedule = {
+    const schedule: DeviceSchedule = {
       id: Date.now().toString(),
       name: newSchedule.name,
       time: newSchedule.time,
@@ -75,117 +80,140 @@ export default function StatisticsScreen() {
   };
 
   return (
-    <ScrollView style={sstyles.container}>
-      <View style={sstyles.header}>
-        <Text style={sstyles.title}>⏰ Programmation</Text>
-        <Text style={sstyles.subtitle}>Gérez les horaires automatiques</Text>
-      </View>
-
-      {/* Liste des programmations */}
-      {schedules.map((schedule) => (
-        <Card key={schedule.id} style={sstyles.scheduleCard}>
-          <View style={sstyles.scheduleHeader}>
-            <View style={sstyles.scheduleInfo}>
-              <Text style={sstyles.scheduleName}>{schedule.name}</Text>
-              <Text style={sstyles.scheduleTime}>{schedule.time}</Text>
-            </View>
-            <Switch
-              value={schedule.enabled}
-              onValueChange={() => toggleSchedule(schedule.id)}
-              trackColor={{
-                false: CColors.light.border,
-                true: CColors.light.tint,
-              }}
-              thumbColor={schedule.enabled ? "#fff" : "#f4f3f4"}
-            />
-          </View>
-
-          <View style={sstyles.scheduleActions}>
-            <TouchableOpacity
-              style={sstyles.actionButton}
-              onPress={() => deleteSchedule(schedule.id)}
-            >
-              <Ionicons name="trash" size={20} color={CColors.light.error} />
-              <Text
-                style={[sstyles.actionText, { color: CColors.light.error }]}
-              >
-                Supprimer
+    <ScrollView style={styles.container}>
+      <View style={styles.content}>
+        {/* HEADER */}
+        <View style={styles.header}>
+          {/* LEFT */}
+          <View style={styles.headerLeft}>
+            {/* <Image
+                    source={require("../../assets/images/logo.png")}
+                    style={styles.headerLogo}
+                    resizeMode="contain"
+                  /> */}
+            <View style={styles.welcomeContainer}>
+              <Text style={styles.welcomeText}>
+                {selectedDevice ? selectedDevice.name : "Aucune mangeoire"}
               </Text>
+              <Text style={styles.usernameText}>
+                {/* {user?.email?.split("@")[0]} */}
+                Programmation
+              </Text>
+            </View>
+          </View>
+          {/* RIGHT */}
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => setModalVisible(true)}
+            >
+              <Ionicons name="add" size={20} color="#fff" />
+              <Text style={styles.addButtonText}>Add</Text>
             </TouchableOpacity>
           </View>
+        </View>
+
+        {/* Liste des programmations */}
+        {schedules.map((schedule) => (
+          <View key={schedule.id} style={styles.transactionCard}>
+            <View style={styles.transactionContent}>
+              <View style={styles.transactionLeft}>
+                <Text style={styles.transactionTitle}>{schedule.name}</Text>
+                <Text style={styles.transactionDate}>{schedule.time}</Text>
+              </View>
+
+              <View style={styles.transactionRight}>
+                <Switch
+                  value={schedule.enabled}
+                  onValueChange={() => toggleSchedule(schedule.id)}
+                  trackColor={{
+                    false: CColors.light.border,
+                    true: COLORS.income,
+                  }}
+                  thumbColor={schedule.enabled ? "#fff" : "#f4f3f4"}
+                />
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => deleteSchedule(schedule.id)}
+            >
+              <Ionicons name="trash-outline" size={20} color={COLORS.expense} />
+            </TouchableOpacity>
+          </View>
+        ))}
+
+        {/* Informations */}
+        <Card style={styles.balanceCard}>
+          <Text style={styles.transactionTitle}>🛑 Informations</Text>
+          <Text style={styles.transactionCategory}>
+            • Les programmations activées déclencheront automatiquement la
+            distribution
+          </Text>
+          <Text style={styles.transactionCategory}>
+            • La distribution n&apos;a lieu que si un récipient est détecté
+          </Text>
         </Card>
-      ))}
 
-      {/* Bouton d'ajout */}
-      <Card style={sstyles.addCard}>
-        <Button
-          title="Ajouter une programmation"
-          onPress={() => setModalVisible(true)}
-          variant="secondary"
-        />
-      </Card>
+        {/* Modal d'ajout */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={sstyles.modalOverlay}>
+            <View style={sstyles.modalContent}>
+              <Text style={sstyles.modalTitle}>Nouvelle programmation</Text>
 
-      {/* Informations */}
-      <Card style={sstyles.infoCard}>
-        <Text style={sstyles.infoTitle}>ℹ️ Informations</Text>
-        <Text style={sstyles.infoText}>
-          • Les programmations activées déclencheront automatiquement la
-          distribution
-        </Text>
-        <Text style={sstyles.infoText}>
-          • La distribution n&apos;a lieu que si un récipient est détecté
-        </Text>
-        <Text style={sstyles.infoText}>
-          • Vous pouvez activer/désactiver chaque programmation individuellement
-        </Text>
-      </Card>
-
-      {/* Modal d'ajout */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={sstyles.modalOverlay}>
-          <View style={sstyles.modalContent}>
-            <Text style={sstyles.modalTitle}>Nouvelle programmation</Text>
-
-            <Input
-              label="Nom de la programmation"
-              value={newSchedule.name}
-              onChangeText={(text) =>
-                setNewSchedule({ ...newSchedule, name: text })
-              }
-              placeholder="Ex: Distribution matinale"
-            />
-
-            <Input
-              label="Heure (HH:MM)"
-              value={newSchedule.time}
-              onChangeText={(text) =>
-                setNewSchedule({ ...newSchedule, time: text })
-              }
-              placeholder="Ex: 08:00"
-              keyboardType="numeric"
-            />
-
-            <View style={sstyles.modalActions}>
-              <Button
-                title="Annuler"
-                onPress={() => setModalVisible(false)}
-                variant="secondary"
-                style={sstyles.modalButton}
+              <Input
+                label="Nom de la programmation"
+                value={newSchedule.name}
+                onChangeText={(text) =>
+                  setNewSchedule({ ...newSchedule, name: text })
+                }
+                placeholder="Nom de la programmation"
               />
-              <Button
-                title="Ajouter"
-                onPress={addSchedule}
-                style={sstyles.modalButton}
+
+              <Input
+                label="Heure (HH:MM)"
+                value={newSchedule.time}
+                onChangeText={(text) =>
+                  setNewSchedule({ ...newSchedule, time: text })
+                }
+                placeholder="Heure (HH:MM)"
+                keyboardType="numeric"
               />
+
+              <View style={sstyles.modalActions}>
+                <TouchableOpacity
+                  style={[STYLES.typeButton, !STYLES.typeButtonActive]}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text
+                    style={[
+                      STYLES.typeButtonText,
+                      !STYLES.typeButtonTextActive,
+                    ]}
+                  >
+                    Annuler
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[STYLES.typeButton, STYLES.typeButtonActive]}
+                  onPress={addSchedule}
+                >
+                  <Text
+                    style={[STYLES.typeButtonText, STYLES.typeButtonTextActive]}
+                  >
+                    Créer
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+      </View>
     </ScrollView>
   );
 }
@@ -279,11 +307,9 @@ const sstyles = StyleSheet.create({
     maxWidth: 400,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "bold",
-    color: CColors.light.text,
-    marginBottom: 24,
-    textAlign: "center",
+    color: COLORS.text,
   },
   modalActions: {
     flexDirection: "row",

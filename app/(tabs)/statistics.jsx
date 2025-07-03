@@ -1,26 +1,26 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useContext, useEffect, useState } from "react";
 import {
   Dimensions,
-  Image,
+  FlatList,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { styles } from "../../assets/styles/home.styles";
-import { SignOutButton } from "../../components/SignOutButton";
 import { AuthContext } from "../_layout";
 
 import Card from "@/components/ui/Card";
+import { COLORS } from "@/constants/colors";
+import { useDevice } from "@/hooks/useDevice";
 import { esp32Api } from "@/utils/supabase";
 import { LineChart } from "react-native-chart-kit";
 import { CColors } from "../../constants/CColors";
 
 const screenWidth = Dimensions.get("window").width;
 export default function StatisticsScreen() {
+  const { selectedDevice } = useDevice();
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,12 +29,16 @@ export default function StatisticsScreen() {
   const { user, session } = useContext(AuthContext);
 
   useEffect(() => {
-    loadHistory();
-  }, []);
+    if (selectedDevice?.id) {
+      setLoading(true);
+      loadHistory();
+    }
+  }, [selectedDevice?.id]);
 
   const loadHistory = async () => {
     try {
-      const data = await esp32Api.getHistory();
+      const data = await esp32Api.getHistory(selectedDevice?.id);
+
       setHistory(data);
     } catch (error) {
       console.error("Erreur lors du chargement de l'historique:", error);
@@ -54,8 +58,8 @@ export default function StatisticsScreen() {
       borderRadius: 16,
     },
     propsForDots: {
-      r: "6",
-      strokeWidth: "2",
+      r: "2",
+      strokeWidth: "0.5",
       stroke: CColors.light.tint,
     },
   };
@@ -115,8 +119,16 @@ export default function StatisticsScreen() {
       : 0;
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text>Chargement des statistiques...</Text>
+      // <View style={styles.loadingContainer}>
+      //   <Text>Chargement des statistiques...</Text>
+      // </View>
+      <></>
+    );
+  }
+  if (!selectedDevice?.id) {
+    return (
+      <View style={sstyles.loadingContainer}>
+        <Text>Sélectionnez un appareil pour voir les statistiques.</Text>
       </View>
     );
   }
@@ -128,20 +140,23 @@ export default function StatisticsScreen() {
         <View style={styles.header}>
           {/* LEFT */}
           <View style={styles.headerLeft}>
-            <Image
+            {/* <Image
               source={require("../../assets/images/logo.png")}
               style={styles.headerLogo}
               resizeMode="contain"
-            />
+            /> */}
             <View style={styles.welcomeContainer}>
-              <Text style={styles.welcomeText}>Welcome,</Text>
+              <Text style={styles.welcomeText}>
+                {selectedDevice ? selectedDevice.name : "Aucune mangeoire"}
+              </Text>
               <Text style={styles.usernameText}>
-                {user?.email?.split("@")[0]}
+                {/* {user?.email?.split("@")[0]} */}
+                Statistiques
               </Text>
             </View>
           </View>
           {/* RIGHT */}
-          <View style={styles.headerRight}>
+          {/* <View style={styles.headerRight}>
             <TouchableOpacity
               style={styles.addButton}
               onPress={() => router.push("/create")}
@@ -150,41 +165,69 @@ export default function StatisticsScreen() {
               <Text style={styles.addButtonText}>Add</Text>
             </TouchableOpacity>
             <SignOutButton />
-          </View>
+          </View> */}
         </View>
 
         {/* Résumé */}
-        <View style={styles.summaryContainer}>
-          <Card style={styles.summaryCard}>
-            <Text style={styles.summaryValue}>{totalDistributions}</Text>
-            <Text style={styles.summaryLabel}>Distributions totales</Text>
+        <View style={styles.balanceCard}>
+          <Text style={styles.balanceTitle}>Distributions totales</Text>
+          <Text style={styles.balanceAmount}>{totalDistributions}</Text>
+          <View style={styles.balanceStats}>
+            <View style={styles.balanceStatItem}>
+              <Text style={styles.balanceStatLabel}>Poids moyen</Text>
+              <Text
+                style={[styles.balanceStatAmount, { color: COLORS.income }]}
+              >
+                {averageWeight.toFixed(0)}g
+              </Text>
+            </View>
+            <View style={[styles.balanceStatItem, styles.statDivider]}></View>
+            <View style={styles.balanceStatItem}>
+              <Text style={styles.balanceStatLabel}>Cette semaine</Text>
+              <Text
+                style={[styles.balanceStatAmount, { color: COLORS.expense }]}
+              >
+                {lastWeekConsumption}
+              </Text>
+            </View>
+          </View>
+
+          {/* <Card style={sstyles.summaryCard}>
+            <Text style={sstyles.summaryValue}>{totalDistributions}</Text>
+            <Text style={sstyles.summaryLabel}>Distributions totales</Text>
           </Card>
-          <Card style={styles.summaryCard}>
-            <Text style={styles.summaryValue}>{averageWeight.toFixed(0)}g</Text>
-            <Text style={styles.summaryLabel}>Poids moyen</Text>
+          <Card style={sstyles.summaryCard}>
+            <Text style={sstyles.summaryValue}>
+              {averageWeight.toFixed(0)}g
+            </Text>
+            <Text style={sstyles.summaryLabel}>Poids moyen</Text>
           </Card>
-          <Card style={styles.summaryCard}>
-            <Text style={styles.summaryValue}>{lastWeekConsumption}</Text>
-            <Text style={styles.summaryLabel}>Cette semaine</Text>
-          </Card>
+          <Card style={sstyles.summaryCard}>
+            <Text style={sstyles.summaryValue}>{lastWeekConsumption}</Text>
+            <Text style={sstyles.summaryLabel}>Cette semaine</Text>
+          </Card> */}
         </View>
 
         {/* Graphique du poids */}
-        <Card style={styles.chartCard}>
-          <Text style={styles.chartTitle}>Évolution du poids (g)</Text>
+        <Text style={styles.sectionTitle}>Évolution du poids (g)</Text>
+
+        {/* <Text style={sstyles.chartTitle}>Évolution du poids (g)</Text> */}
+        <View style={styles.balanceCard}>
           <LineChart
             data={weightData}
             width={screenWidth - 64}
             height={220}
             chartConfig={chartConfig}
             bezier
-            style={styles.chart}
+            style={sstyles.chart}
           />
-        </Card>
+        </View>
 
         {/* Graphique des distributions */}
-        <Card style={styles.chartCard}>
-          <Text style={styles.chartTitle}>Nombre de distributions</Text>
+        <Text style={styles.sectionTitle}>Nombre de distributions</Text>
+
+        <Card style={styles.balanceCard}>
+          {/* <Text style={sstyles.chartTitle}>Nombre de distributions</Text> */}
           <LineChart
             data={distributionData}
             width={screenWidth - 64}
@@ -194,30 +237,45 @@ export default function StatisticsScreen() {
               color: (opacity = 1) => `rgba(76, 175, 80, ${opacity})`,
             }}
             bezier
-            style={styles.chart}
+            style={sstyles.chart}
           />
         </Card>
 
         {/* Historique détaillé */}
-        <Card style={styles.historyCard}>
-          <Text style={styles.chartTitle}>Historique détaillé</Text>
-          {history.map((entry, index) => (
-            <View key={index} style={styles.historyItem}>
-              <Text style={styles.historyDate}>
-                {new Date(entry.date).toLocaleDateString("fr-FR")}
-              </Text>
-              <View style={styles.historyData}>
-                <Text style={styles.historyWeight}>
-                  {entry.weight.toFixed(0)}g
+        {/* <Card style={sstyles.historyCard}> */}
+        {/* </Card> */}
+        <Text style={styles.sectionTitle}>Historique détaillé</Text>
+      </View>
+
+      <FlatList
+        style={styles.transactionsList}
+        contentContainerStyle={styles.transactionsListContent}
+        data={history}
+        // keyExtractor={(item, index) => index.toString()}
+        renderItem={({ item }) => (
+          <View style={styles.transactionCard}>
+            <View style={styles.transactionContent}>
+              <View style={styles.transactionLeft}>
+                <Text style={styles.transactionTitle}>
+                  {new Date(item.timestamp).toLocaleDateString("fr-FR")}
                 </Text>
-                <Text style={styles.historyDistributions}>
-                  {entry.distributions} distributions
+              </View>
+              <View style={[styles.balanceStatItem, styles.statDivider]}></View>
+
+              <View style={styles.transactionRight}>
+                <Text
+                  style={[styles.transactionAmount, { color: COLORS.income }]}
+                >
+                  {item.weight.toFixed(0)}g
+                </Text>
+                <Text style={styles.transactionDate}>
+                  {item.distribution_count} distributions
                 </Text>
               </View>
             </View>
-          ))}
-        </Card>
-      </View>
+          </View>
+        )}
+      />
     </ScrollView>
   );
 }
@@ -278,8 +336,8 @@ const sstyles = StyleSheet.create({
     marginBottom: 16,
   },
   chart: {
-    marginVertical: 8,
-    borderRadius: 16,
+    // marginVertical: 8,
+    // borderRadius: 16,
   },
   historyCard: {
     margin: 16,

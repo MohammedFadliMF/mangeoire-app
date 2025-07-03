@@ -3,6 +3,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { Redirect, Tabs } from "expo-router";
 import { useContext } from "react";
 import { AuthContext } from "../_layout";
+import { COLORS } from "../../constants/colors";
+
 
 export default function TabsLayout() {
   const { loading, setLoading, user, setUser } = useContext(AuthContext);
@@ -10,30 +12,10 @@ export default function TabsLayout() {
   if (!user) return <Redirect href="/(auth)/sign-in" />;
 
   return (
-    // <Tabs
-    //   screenOptions={({ route }) => ({
-    //     headerShown: false,
-    //     tabBarIcon: ({ color, size }) => {
-    //       if (route.name === "statistics") {
-    //         return <Ionicons name="stats-chart" size={size} color={color} />;
-    //       }
-    //       if (route.name === "schedule") {
-    //         return <Ionicons name="calendar" size={size} color={color} />;
-    //       }
-    //       if (route.name === "settings") {
-    //         return <Ionicons name="settings" size={size} color={color} />;
-    //       }
-    //       return null;
-    //     },
-    //   })}
-    // >
-    //   <Tabs.Screen name="statistics" options={{ title: "Statistics" }} />
-    //   <Tabs.Screen name="schedule" options={{ title: "Schedule" }} />
-    //   <Tabs.Screen name="settings" options={{ title: "Settings" }} />
-    // </Tabs>
+   
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: CColors.light.tint,
+        tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: CColors.light.tabIconDefault,
         headerShown: false,
         tabBarStyle: {

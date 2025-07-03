@@ -9,36 +9,20 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Image,
 } from "react-native";
 import { CColors } from "../../constants/CColors";
 import { authService } from "../../services/auth";
 import { AuthContext } from "../_layout";
+import { styles } from "../../assets/styles/home.styles";
+import { useDevice } from "@/hooks/useDevice";
+import { SignOutButton } from "../../components/SignOutButton";
+import { COLORS } from "../../constants/colors";
 
 export default function SettingsScreen() {
+    const { selectedDevice } = useDevice();
+  
   const { user, session } = useContext(AuthContext);
-
-  const SignOut = async () => {
-    try {
-      await authService.signOut();
-      // La redirection se fera automatiquement via le contexte
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
-  };
-
-  const handleSignOut = async () => {
-    Alert.alert("Lougout", "Are you sure want to logout ?", [
-      {
-        text: "Cancel",
-        style: "cancel",
-      },
-      {
-        text: "Logout",
-        onPress: SignOut,
-        style: "destructive",
-      },
-    ]);
-  };
 
   const handleCalibration = () => {
     Alert.alert(
@@ -93,93 +77,111 @@ export default function SettingsScreen() {
   ];
 
   return (
-    <ScrollView style={sstyles.container}>
-      <View style={sstyles.header}>
-        <Text style={sstyles.title}>⚙️ Paramètres</Text>
-        <Text style={sstyles.subtitle}>Configuration et gestion</Text>
-      </View>
-
-      {/* Profil utilisateur */}
-      <Card style={sstyles.profileCard}>
-        <View style={sstyles.profileHeader}>
-          <View style={sstyles.avatar}>
-            <Ionicons name="person" size={32} color={CColors.light.tint} />
-          </View>
-          <View style={sstyles.profileInfo}>
-            <Text style={sstyles.profileName}>Utilisateur</Text>
-            <Text style={sstyles.profileEmail}>{user?.email}</Text>
-          </View>
-        </View>
-      </Card>
-
-      {/* Menu des paramètres */}
-      <Card style={sstyles.menuCard}>
-        <Text style={sstyles.menuTitle}>Configuration de l&apos;appareil</Text>
-        {settingsMenuItems.map((item, index) => (
-          <TouchableOpacity
-            key={index}
-            style={sstyles.menuItem}
-            onPress={item.onPress}
-          >
-            <View style={sstyles.menuIcon}>
-              <Ionicons name={item.icon} size={24} color={CColors.light.tint} />
+    <ScrollView style={styles.container}>
+      <View style={styles.content}>
+        {/* HEADER */}
+        {/* <Card style={sstyles.profileCard}>
+          <View style={sstyles.profileHeader}>
+            <View style={sstyles.avatar}>
+              <Ionicons name="person" size={32} color={CColors.light.tint} />
             </View>
-            <View style={sstyles.menuContent}>
-              <Text style={sstyles.menuItemTitle}>{item.title}</Text>
-              <Text style={sstyles.menuItemSubtitle}>{item.subtitle}</Text>
+            <View style={sstyles.profileInfo}>
+              <Text style={sstyles.profileName}>Utilisateur</Text>
+              <Text style={sstyles.profileEmail}>{user?.email}</Text>
             </View>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={CColors.light.icon}
-            />
-          </TouchableOpacity>
-        ))}
-      </Card>
-
-      {/* Informations système */}
-      <Card style={sstyles.systemCard}>
-        <Text style={sstyles.menuTitle}>Informations système</Text>
-        <View style={sstyles.systemInfo}>
-          <View style={sstyles.systemRow}>
-            <Text style={sstyles.systemLabel}>Version de l&apos;app:</Text>
-            <Text style={sstyles.systemValue}>1.0.0</Text>
           </View>
-          <View style={sstyles.systemRow}>
-            <Text style={sstyles.systemLabel}>ESP32 connecté:</Text>
-            <Text
-              style={[sstyles.systemValue, { color: CColors.light.success }]}
+        </Card> */}
+        <View style={styles.header}>
+          {/* LEFT */}
+          <View style={styles.headerLeft}>
+            {/* <Image
+              source={require("../../assets/images/logo.png")}
+              style={styles.headerLogo}
+              resizeMode="contain"
+            /> */}
+            <View style={sstyles.avatar}>
+              <Ionicons name="person" size={32} color={COLORS.primary} />
+            </View>
+
+            <View style={styles.welcomeContainer}>
+              <Text style={styles.welcomeText}>
+                {/* {selectedDevice ? selectedDevice.name : "Aucune mangeoire"} */}
+                {user?.email?.split("@")[0]}
+              </Text>
+              <Text style={styles.usernameText}>
+                {/* {user?.email?.split("@")[0]} */}
+                Paramètres
+              </Text>
+            </View>
+          </View>
+          {/* RIGHT */}
+          <View style={styles.headerRight}>
+            {/* <TouchableOpacity
+              style={styles.addButton}
+              // onPress={() => router.push("/create")}
             >
-              ✅ En ligne
-            </Text>
-          </View>
-          <View style={sstyles.systemRow}>
-            <Text style={sstyles.systemLabel}>Dernière sync:</Text>
-            <Text style={sstyles.systemValue}>
-              {new Date().toLocaleTimeString()}
-            </Text>
+              <Ionicons name="add" size={20} color="#fff" />
+              <Text style={styles.addButtonText}>Add</Text>
+            </TouchableOpacity> */}
+            <SignOutButton />
           </View>
         </View>
-      </Card>
 
-      {/* Bouton de déconnexion */}
-      <Card style={sstyles.signOutCard}>
-        <Button
-          title="Se déconnecter"
-          onPress={handleSignOut}
-          variant="danger"
-        />
-      </Card>
-
-      {/* À propos */}
-      <Card style={sstyles.aboutCard}>
-        <Text style={sstyles.aboutTitle}>À propos</Text>
-        <Text style={sstyles.aboutText}>
-          Mangeoire Automatique v1.0.0{"\n"}
-          Développée avec Expo, React Native et Supabase{"\n"}
-          Pour ESP32 avec capteurs HX711 et IR
+        {/* Menu des paramètres */}
+        <Text style={styles.sectionTitle}>
+          Configuration de l&apos;appareil
         </Text>
-      </Card>
+
+        <Card style={styles.balanceCard}>
+          {/* <Text style={styles.sectionTitle}>Configuration de l&apos;appareil</Text> */}
+          {settingsMenuItems.map((item, index) => (
+            <TouchableOpacity
+              key={index}
+              style={sstyles.menuItem}
+              onPress={item.onPress}
+            >
+              <View style={sstyles.menuIcon}>
+                <Ionicons name={item.icon} size={24} color={COLORS.primary} />
+              </View>
+              <View style={sstyles.menuContent}>
+                <Text style={styles.transactionTitle}>{item.title}</Text>
+                <Text style={styles.transactionCategory}>{item.subtitle}</Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={CColors.light.icon}
+              />
+            </TouchableOpacity>
+          ))}
+        </Card>
+        <Text style={styles.sectionTitle}>À propos</Text>
+
+        {/* Informations système */}
+        <Card style={styles.balanceCard}>
+          {/* <Text style={styles.sectionTitle}>Informations système</Text> */}
+          <View style={sstyles.systemInfo}>
+            <View style={sstyles.systemRow}>
+              <Text style={styles.transactionCategory}>Version de l&apos;app:</Text>
+              <Text style={styles.transactionTitle}>1.0.0</Text>
+            </View>
+            <View style={sstyles.systemRow}>
+              <Text style={styles.transactionCategory}>ESP32 connecté:</Text>
+              <Text
+                style={[styles.transactionTitle, { color: CColors.light.success }]}
+              >
+                En ligne
+              </Text>
+            </View>
+            <View style={sstyles.systemRow}>
+              <Text style={styles.transactionCategory}>Dernière sync:</Text>
+              <Text style={styles.transactionTitle}>
+                {new Date().toLocaleTimeString()}
+              </Text>
+            </View>
+          </View>
+        </Card>
+      </View>
     </ScrollView>
   );
 }
