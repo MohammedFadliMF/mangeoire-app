@@ -133,6 +133,7 @@ class AuthService {
   // Déconnexion
   async signOut() {
     try {
+     
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
     } catch (error) {
@@ -140,8 +141,6 @@ class AuthService {
       throw error;
     }
   }
-
-
 }
 
 export const authService = new AuthService();

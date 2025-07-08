@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Modal,
@@ -16,6 +16,7 @@ import Input from "@/components/ui/Input";
 import { COLORS } from "@/constants/colors";
 import { useDevice } from "@/hooks/useDevice";
 import { DeviceSchedule } from "@/types/index";
+import { schedulesApi, supabase } from "@/utils/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { styles } from "../../assets/styles/home.styles";
 import { CColors } from "../../constants/CColors";
@@ -23,23 +24,56 @@ import { CColors } from "../../constants/CColors";
 export default function StatisticsScreen() {
   const { selectedDevice } = useDevice();
 
-  const [schedules, setSchedules] = useState<DeviceSchedule[]>([
-    { id: "1", time: "08:00", enabled: true, name: "Distribution matinale" },
-    { id: "2", time: "12:00", enabled: false, name: "Distribution midi" },
-    { id: "3", time: "18:00", enabled: true, name: "Distribution du soir" },
-  ]);
+  const [schedules, setSchedules] = useState<DeviceSchedule[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [newSchedule, setNewSchedule] = useState({
     name: "",
     time: "",
   });
+  useEffect(() => {
+    fetchSchedules();
+  }, [selectedDevice?.id]);
 
-  const toggleSchedule = (id: string) => {
+  const fetchSchedules = async () => {
+    if (!selectedDevice?.id) {
+      Alert.alert(
+        "Erreur",
+        "Aucun appareil sélectionné pour récupérer les programmations."
+      );
+      return;
+    }
+
+    try {
+      const data = await schedulesApi.getDeviceSchedules(selectedDevice.id);
+      setSchedules(data);
+    } catch (error) {
+      console.error("Erreur lors du chargement des programmations :", error);
+    }
+  };
+
+  const toggleSchedule = async (id: string) => {
+    // Trouver la programmation concernée
+    const scheduleToToggle = schedules.find((s) => s.id === id);
+    if (!scheduleToToggle) return;
+
+    const updatedEnabled = !scheduleToToggle.enabled;
+
+    // 🔧 Mise à jour dans Supabase
+    const { error } = await supabase
+      .from("device_schedules")
+      .update({ enabled: updatedEnabled })
+      .eq("id", id);
+
+    if (error) {
+      console.error("Erreur lors de la mise à jour du statut :", error);
+      Alert.alert("Erreur", "Impossible de mettre à jour la programmation.");
+      return;
+    }
+
+    // ✅ Mise à jour de l’état local
     setSchedules(
       schedules.map((schedule) =>
-        schedule.id === id
-          ? { ...schedule, enabled: !schedule.enabled }
-          : schedule
+        schedule.id === id ? { ...schedule, enabled: updatedEnabled } : schedule
       )
     );
   };
@@ -53,30 +87,61 @@ export default function StatisticsScreen() {
         {
           text: "Supprimer",
           style: "destructive",
-          onPress: () => {
-            setSchedules(schedules.filter((schedule) => schedule.id !== id));
+          onPress: async () => {
+            const success = await schedulesApi.deleteSchedule(id);
+            if (success) {
+              fetchSchedules(); // recharge toutes les données à jour
+            } else {
+              Alert.alert(
+                "Erreur",
+                "La suppression a échoué. Veuillez réessayer."
+              );
+            }
           },
         },
       ]
     );
   };
 
-  const addSchedule = () => {
+  const addSchedule = async () => {
     if (!newSchedule.name || !newSchedule.time) {
       Alert.alert("Erreur", "Veuillez remplir tous les champs");
       return;
     }
 
-    const schedule: DeviceSchedule = {
-      id: Date.now().toString(),
-      name: newSchedule.name,
-      time: newSchedule.time,
-      enabled: true,
-    };
+    // const schedule: DeviceSchedule = {
+    //   id: Date.now().toString(),
+    //   name: newSchedule.name,
+    //   time: newSchedule.time,
+    //   enabled: true,
+    // };
 
-    setSchedules([...schedules, schedule]);
-    setNewSchedule({ name: "", time: "" });
-    setModalVisible(false);
+    // setSchedules([...schedules, schedule]);
+    // setNewSchedule({ name: "", time: "" });
+    // setModalVisible(false);
+
+    // 🔧 Appel API pour créer la programmation côté Supabase
+    if (!selectedDevice?.id) {
+      Alert.alert("Erreur", "Aucun appareil sélectionné.");
+      return;
+    }
+    const success = await schedulesApi.createSchedule(
+      selectedDevice.id,
+      newSchedule.name,
+      newSchedule.time
+    );
+
+    if (success) {
+      Alert.alert("Succès", "Programmation ajoutée avec succès !");
+      setNewSchedule({ name: "", time: "" });
+      setModalVisible(false);
+
+      // 🔁 Recharger les programmations depuis la base si nécessaire
+
+      fetchSchedules();
+    } else {
+      Alert.alert("Erreur", "Échec lors de l'ajout de la programmation.");
+    }
   };
 
   return (
@@ -182,7 +247,7 @@ export default function StatisticsScreen() {
                   setNewSchedule({ ...newSchedule, time: text })
                 }
                 placeholder="Heure (HH:MM)"
-                keyboardType="numeric"
+                // keyboardType="numeric"
               />
 
               <View style={sstyles.modalActions}>

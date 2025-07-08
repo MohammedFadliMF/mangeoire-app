@@ -100,7 +100,7 @@ export default function Page() {
     >
       <View style={styles.container}>
         <Image
-          source={require("../../assets/images/revenue-i2.png")}
+          source={require("../../assets/images/l4.png")}
           style={styles.illustration}
         />
         <Text style={styles.title}>Welcome Back</Text>

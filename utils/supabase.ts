@@ -216,44 +216,67 @@ export const esp32Api = {
   },
 
   // Obtenir les statistiques d'un device
-  async getStatistics(deviceId: string): Promise<{
-    totalDistributions: number;
-    averageWeight: number;
-    lastDistribution: string | null;
-  }> {
-    const { data, error } = await supabase
-      .from("sensor_data")
-      .select("distribution_count, weight, timestamp")
-      .eq("device_id", deviceId)
-      .order("timestamp", { ascending: false })
-      .limit(100);
+  // async getStatistics(deviceId: string): Promise<{
+  //   totalDistributions: number;
+  //   averageWeight: number;
+  //   lastDistribution: string | null;
+  // }> {
+  //   const { data, error } = await supabase
+  //     .from("sensor_data")
+  //     .select("distribution_count, weight, timestamp")
+  //     .eq("device_id", deviceId)
+  //     .order("timestamp", { ascending: false })
+  //     .limit(100);
 
-    if (error || !data) {
-      return {
-        totalDistributions: 0,
-        averageWeight: 0,
-        lastDistribution: null,
-      };
+  //   if (error || !data) {
+  //     return {
+  //       totalDistributions: 0,
+  //       averageWeight: 0,
+  //       lastDistribution: null,
+  //     };
+  //   }
+
+  //   const totalDistributions = Math.max(
+  //     ...data.map((d) => d.distribution_count),
+  //     0
+  //   );
+  //   const averageWeight =
+  //     data.reduce((sum, d) => sum + d.weight, 0) / data.length;
+  //   const lastDistribution =
+  //     data.find((d) => d.distribution_count > 0)?.timestamp || null;
+
+  //   return {
+  //     totalDistributions,
+  //     averageWeight,
+  //     lastDistribution,
+  //   };
+  // },
+
+  // fonction pour récupérer l'historique des distributions
+  async getDistributionHistory(
+    deviceId: string
+    // days: number = 7
+  ): Promise<any[]> {
+    // const startDate = new Date();
+    // startDate.setDate(startDate.getDate() - days);
+
+    const { data, error } = await supabase
+      .from("distribution_history")
+      .select("*")
+      .eq("device_id", deviceId)
+      // .gte("timestamp", startDate.toISOString())
+      .order("timestamp", { ascending: false });
+
+    if (error) {
+      console.error("Erreur historique distributions:", error);
+      return [];
     }
 
-    const totalDistributions = Math.max(
-      ...data.map((d) => d.distribution_count),
-      0
-    );
-    const averageWeight =
-      data.reduce((sum, d) => sum + d.weight, 0) / data.length;
-    const lastDistribution =
-      data.find((d) => d.distribution_count > 0)?.timestamp || null;
-
-    return {
-      totalDistributions,
-      averageWeight,
-      lastDistribution,
-    };
+    return data || [];
   },
 };
 
-// 📅 API pour gérer les programmations
+// API pour gérer les programmations
 export const schedulesApi = {
   // Obtenir les programmations d'un device
   async getDeviceSchedules(deviceId: string): Promise<DeviceSchedule[]> {
@@ -281,6 +304,8 @@ export const schedulesApi = {
       device_id: deviceId,
       name,
       time,
+      enabled: true,
+      created_at: new Date().toISOString(), // horodatage actuel
     });
 
     if (error) {

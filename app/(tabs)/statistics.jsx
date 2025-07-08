@@ -1,17 +1,9 @@
 import { useRouter } from "expo-router";
 import { useContext, useEffect, useState } from "react";
-import {
-  Dimensions,
-  FlatList,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Dimensions, FlatList, StyleSheet, Text, View } from "react-native";
 import { styles } from "../../assets/styles/home.styles";
 import { AuthContext } from "../_layout";
 
-import Card from "@/components/ui/Card";
 import { COLORS } from "@/constants/colors";
 import { useDevice } from "@/hooks/useDevice";
 import { esp32Api } from "@/utils/supabase";
@@ -22,6 +14,7 @@ const screenWidth = Dimensions.get("window").width;
 export default function StatisticsScreen() {
   const { selectedDevice } = useDevice();
   const [history, setHistory] = useState([]);
+  const [distributionHistory, setDistributionHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const router = useRouter();
@@ -37,9 +30,15 @@ export default function StatisticsScreen() {
 
   const loadHistory = async () => {
     try {
-      const data = await esp32Api.getHistory(selectedDevice?.id);
+      // const data = await esp32Api.getHistory(selectedDevice?.id);
+      // Charger les données de distribution_history
+      const [historyData, distributionHistory] = await Promise.all([
+        esp32Api.getHistory(selectedDevice?.id),
+        esp32Api.getDistributionHistory(selectedDevice?.id),
+      ]);
 
-      setHistory(data);
+      setDistributionHistory(distributionHistory);
+      setHistory(historyData);
     } catch (error) {
       console.error("Erreur lors du chargement de l'historique:", error);
     } finally {
@@ -134,7 +133,7 @@ export default function StatisticsScreen() {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.content}>
         {/* HEADER */}
         <View style={styles.header}>
@@ -155,17 +154,6 @@ export default function StatisticsScreen() {
               </Text>
             </View>
           </View>
-          {/* RIGHT */}
-          {/* <View style={styles.headerRight}>
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => router.push("/create")}
-            >
-              <Ionicons name="add" size={20} color="#fff" />
-              <Text style={styles.addButtonText}>Add</Text>
-            </TouchableOpacity>
-            <SignOutButton />
-          </View> */}
         </View>
 
         {/* Résumé */}
@@ -209,10 +197,10 @@ export default function StatisticsScreen() {
         </View>
 
         {/* Graphique du poids */}
-        <Text style={styles.sectionTitle}>Évolution du poids (g)</Text>
-
-        {/* <Text style={sstyles.chartTitle}>Évolution du poids (g)</Text> */}
+        {/* <Text style={styles.sectionTitle}>Évolution du poids (g)</Text> */}
         <View style={styles.balanceCard}>
+          <Text style={styles.balanceTitle}>Évolution du poids (g)</Text>
+
           <LineChart
             data={weightData}
             width={screenWidth - 64}
@@ -224,10 +212,8 @@ export default function StatisticsScreen() {
         </View>
 
         {/* Graphique des distributions */}
-        <Text style={styles.sectionTitle}>Nombre de distributions</Text>
-
+        {/* <Text style={styles.sectionTitle}>Nombre de distributions</Text>
         <Card style={styles.balanceCard}>
-          {/* <Text style={sstyles.chartTitle}>Nombre de distributions</Text> */}
           <LineChart
             data={distributionData}
             width={screenWidth - 64}
@@ -239,18 +225,17 @@ export default function StatisticsScreen() {
             bezier
             style={sstyles.chart}
           />
-        </Card>
+        </Card> */}
 
         {/* Historique détaillé */}
-        {/* <Card style={sstyles.historyCard}> */}
-        {/* </Card> */}
+
         <Text style={styles.sectionTitle}>Historique détaillé</Text>
       </View>
 
       <FlatList
         style={styles.transactionsList}
         contentContainerStyle={styles.transactionsListContent}
-        data={history}
+        data={distributionHistory}
         // keyExtractor={(item, index) => index.toString()}
         renderItem={({ item }) => (
           <View style={styles.transactionCard}>
@@ -266,17 +251,17 @@ export default function StatisticsScreen() {
                 <Text
                   style={[styles.transactionAmount, { color: COLORS.income }]}
                 >
-                  {item.weight.toFixed(0)}g
+                  {item.weight_after.toFixed(0)}g
                 </Text>
                 <Text style={styles.transactionDate}>
-                  {item.distribution_count} distributions
+                  {item.duration_seconds} s
                 </Text>
               </View>
             </View>
           </View>
         )}
       />
-    </ScrollView>
+    </View>
   );
 }
 

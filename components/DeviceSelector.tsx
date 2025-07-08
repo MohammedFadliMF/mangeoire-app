@@ -96,8 +96,8 @@ export default function DeviceSelector({
             onPress={() => setModalVisible(true)}
             disabled={loading}
           >
-            <Ionicons name="add" size={20} color="#fff" />
-            <Text style={styles.addButtonText}>Add</Text>
+            <Ionicons name="list-circle-outline" size={20} color="#fff" />
+            <Text style={styles.addButtonText}>Gérer</Text>
           </TouchableOpacity>
         </View>
         {/* </View> */}
